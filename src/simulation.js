@@ -4,7 +4,7 @@ module.exports.run = function(fileName) {
     var _ = require('underscore');
     var fs = require('node-fs');
 
-    var config = parser.import('./' + fileName + '.in');
+    var config = parser.import('./data/' + fileName + '.in');
     var drones = [];
     config.commands = [];
 
@@ -64,7 +64,7 @@ module.exports.run = function(fileName) {
             }
         });
 
-        fs.writeFileSync(fileName + '.out', content, 'utf8');
+        fs.writeFileSync('./data/' + fileName + '.out', content, 'utf8');
     }
 
     function findSmallestOrder() {
