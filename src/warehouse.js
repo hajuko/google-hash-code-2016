@@ -1,3 +1,5 @@
+var _ = require('underscore');
+
 module.exports = function() {
     var coordinates = null;
     var products = {};
@@ -12,11 +14,23 @@ module.exports = function() {
         return products[productType] >= number;
     }
 
+    function hasProductsInStock(productObj) {
+        var areInStock = true;
+
+        _.each(productObj, function(value, productType) {
+            if (!inStock(productType, value)) {
+                areInStock = false;
+            }
+        });
+
+        return areInStock;
+    }
 
     return {
         coordinates: coordinates,
         takeItemsForOrder: takeItemsForOrder,
         products: products,
-        canLoad: inStock
+        canLoad: inStock,
+        hasProductsInStock: hasProductsInStock
     }
 };

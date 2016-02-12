@@ -18,6 +18,7 @@ module.exports.import = function(file) {
     var currentOrder;
     var orderId = 0;
     var orderCount = 0;
+    var warehouseId = 0;
 
     lines = inputSet.split('\n');
 
@@ -28,8 +29,8 @@ module.exports.import = function(file) {
             config.rows = line[0];
             config.columns = line[1];
             config.droneNumber = line[2];
-            config.turns = line[3];
-            config.payload = line[4];
+            config.turns = parseInt(line[3]);
+            config.payload = parseInt(line[4]);
         }
 
         if (i == 2) {
@@ -46,6 +47,8 @@ module.exports.import = function(file) {
             if (i % 2 == 0) {
                 currentWarehouse = new Warehouse();
                 currentWarehouse.coordinates = line;
+                currentWarehouse.id = warehouseId;
+                warehouseId++;
             } else {
                 line.forEach(function(productCount, productType) {
                     currentWarehouse.products[productType] = productCount;

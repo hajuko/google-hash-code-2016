@@ -4,17 +4,23 @@ module.exports = function(fileName) {
     var _ = require('underscore');
     var fs = require('node-fs');
     var config = parser.import('./data/' + fileName + '.in');
-    var drone = config.drones.shift();
-    var order = Helper.findSmallestOrder(config);
 
-    while (order.products.length > 0) {
-        if (drone.canLoad(order.products[0], 1)) {
-            drone.loadItems(0, order.products.shift(), 1);
-        } else {
-            break;
+    var order;
+
+    while (order = Helper.findSmallestOrderNotFinishedOrder(config)) {
+        var deliveryPlan = Helper.getNextDeliveryPlan(config, order);
+
+        if (!deliveryPlan.warehouse) {
+            console.log('warehouse not found');
+            order.isComplete = true;
+            continue;
         }
-    };
 
-    drone.deliverOrder(order.id, order.coordinates);
+        console.log(order.id);
+
+
+        deliveryPlan.drone.deliverOrder(deliveryPlan);
+    }
+
     Helper.writeCommands(config.commands, fileName);
 };

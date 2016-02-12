@@ -1,51 +1,51 @@
 var _ = require('underscore');
+var Helper = require('./helper');
 
 module.exports = function(id, config) {
-    var products = {};
+    var turns = config.turns;
+    var coordinates = config.warehouses[0].coordinates;
 
-    function loadItems(warehouseId, productType, number) {
-        if (!products[productType]) {
-            products[productType] = 0;
-        }
-
-        products[productType] += number;
-        config.commands.push(id + ' L ' + warehouseId + ' ' + productType + ' ' + number);
-        config.warehouses[warehouseId].products[productType] -= number;
+    function loadItems(warehouse, productType, number) {
+        config.commands.push(id + ' L ' + warehouse.id + ' ' + productType + ' ' + number);
+        warehouse.products[productType] -= number;
+        turns--;
     }
 
-    function deliverOrder(orderId, coordinates) {
-        _.each(products, function(number, productType) {
-            deliverItem(orderId, productType, number);
-        });
-    }
-
-    function deliverItem(orderId, productType, numberOfItems) {
-        products[productType] -= numberOfItems;
-        config.commands.push(id + ' D ' + orderId + ' ' + productType + ' ' + numberOfItems);
-    }
-
-    function canLoad(productType, number) {
-        return getWeight() + config.productWeights[productType] * number <= config.payload;
-    }
-
-    function getWeight() {
-        var weight = 0;
-
-        _.each(products, function(product, i) {
-            weight += product * config.productWeights[i];
+    function deliverOrder(deliveryPlan) {
+        _.each(deliveryPlan.products, function(number, productType) {
+            loadItems(deliveryPlan.warehouse, productType, number);
         });
 
-        return weight;
+        turns -= deliveryPlan.dinstance;
+
+        _.each(deliveryPlan.products, function(number, productType) {
+            deliverItem(deliveryPlan, productType, number);
+        });
+
+        console.log('delivering oder ' + deliveryPlan.order.id + ' to ' + deliveryPlan.order.coordinates);
+
+        coordinates = deliveryPlan.order.coordinates;
+    }
+
+    function deliverItem(deliveryPlan, productType, numberOfItems) {
+        turns--;
+        deliveryPlan.products[productType] -= numberOfItems;
+        config.commands.push(id + ' D ' + deliveryPlan.order.id + ' ' + productType + ' ' + numberOfItems);
+    }
+
+    function getTurns() {
+        return turns;
+    }
+
+    function getCoordinates() {
+        return coordinates;
     }
 
     return {
         id: id,
-        products: products,
-        turns: config.turns,
-        coordinates: config.warehouses[0].coordinates,
-        getWeight: getWeight,
-        canLoad: canLoad,
+        getCoordinates: getCoordinates,
         loadItems: loadItems,
-        deliverOrder: deliverOrder
+        deliverOrder: deliverOrder,
+        getTurns: getTurns
     }
 };
