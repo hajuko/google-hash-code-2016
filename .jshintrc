@@ -1,0 +1,24 @@
+{
+    "bitwise": true,
+    "curly": true,
+    "eqeqeq": true,
+    "freeze": true,
+    "latedef": "nofunc",
+    "maxparams": 5,
+    "maxdepth": 5,
+    "maxstatements": 20,
+    "undef": true,
+    "unused": true,
+    "nonbsp": true,
+    "es3": true,
+    "browser": true,
+    "devel": true,
+    "jquery": true,
+    "node": true,
+
+    "globals" :  {
+        "require": true,
+        "module": true,
+        "exports": true
+    }
+}
