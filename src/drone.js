@@ -9,9 +9,7 @@ module.exports = function(id, config) {
         }
 
         products[productType] += number;
-
         config.commands.push(id + ' L ' + warehouseId + ' ' + productType + ' ' + number);
-
         config.warehouses[warehouseId].products[productType] -= number;
     }
 
@@ -23,7 +21,6 @@ module.exports = function(id, config) {
 
     function deliverItem(orderId, productType, numberOfItems) {
         products[productType] -= numberOfItems;
-
         config.commands.push(id + ' D ' + orderId + ' ' + productType + ' ' + numberOfItems);
     }
 

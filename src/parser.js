@@ -1,12 +1,15 @@
 var fs = require('node-fs');
 var Warehouse = require('./warehouse');
 var Order = require('./order');
+var Drone = require('./drone');
 var lines;
 
 var config = {
     productWeights: [],
     warehouses: [],
-    ordersArray: []
+    orders: {},
+    commands: [],
+    drones: []
 };
 
 
@@ -19,6 +22,7 @@ module.exports.import = function(file) {
     var currentWarehouse;
     var currentOrder;
     var orderCount = 0;
+    var ordersArray = [];
 
     for (var i = 0; i < lines.length; i++ ) {
 
@@ -26,7 +30,7 @@ module.exports.import = function(file) {
         if (i == 0) {
             config.rows = line[0];
             config.columns = line[1];
-            config.drones = line[2];
+            config.droneNumber = line[2];
             config.turns = line[3];
             config.payload = line[4];
         }
@@ -62,13 +66,20 @@ module.exports.import = function(file) {
             }
 
             if (orderCount % 3 == 2) {
-                config.ordersArray.push(currentOrder);
+                ordersArray.push(currentOrder);
                 currentOrder.products = sortByProductWeight(line);
             }
 
             orderCount++;
         }
     };
+
+    ordersArray.forEach(function(order, orderId) {
+        order.id = orderId;
+        config.orders[orderId] = order;
+    });
+
+    config.drones = createDrones(config.droneNumber);
 
     return config;
 };
@@ -77,4 +88,14 @@ function sortByProductWeight(productTypes) {
     return productTypes.sort(function (a, b) {
         return config.productWeights[a] - config.productWeights[b];
     });
+}
+
+function createDrones(num) {
+    var drones = [];
+
+    for (var i = 0; i < num; i++) {
+        drones.push(new Drone(i, config));
+    }
+
+    return drones;
 }
