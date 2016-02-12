@@ -2,31 +2,28 @@ var fs = require('node-fs');
 var Warehouse = require('./warehouse');
 var Order = require('./order');
 var Drone = require('./drone');
-var lines;
-
-var config = {
-    productWeights: [],
-    warehouses: [],
-    orders: {},
-    commands: [],
-    drones: []
-};
-
 
 
 module.exports.import = function(file) {
+    var lines;
+    var config = {
+        productWeights: [],
+        warehouses: [],
+        orders: {},
+        commands: [],
+        drones: []
+    };
     var inputSet = fs.readFileSync(file, 'utf8');
+    var currentWarehouse = null;
+    var currentOrder;
+    var orderId = 0;
+    var orderCount = 0;
 
     lines = inputSet.split('\n');
 
-    var currentWarehouse;
-    var currentOrder;
-    var orderCount = 0;
-    var ordersArray = [];
-
     for (var i = 0; i < lines.length; i++ ) {
-
         var line = lines[i].split(' ');
+
         if (i == 0) {
             config.rows = line[0];
             config.columns = line[1];
@@ -36,8 +33,8 @@ module.exports.import = function(file) {
         }
 
         if (i == 2) {
-            line.forEach(function(weight, j) {
-                config.productWeights[j] = weight;
+            line.forEach(function(weight, productType) {
+                config.productWeights[productType] = weight;
             });
         }
 
@@ -49,53 +46,44 @@ module.exports.import = function(file) {
             if (i % 2 == 0) {
                 currentWarehouse = new Warehouse();
                 currentWarehouse.coordinates = line;
-
             } else {
-                line.forEach(function(productCount, productId) {
-                    currentWarehouse.products[productId] = productCount;
+                line.forEach(function(productCount, productType) {
+                    currentWarehouse.products[productType] = productCount;
                 });
                 config.warehouses.push(currentWarehouse);
             }
         }
 
         if (i > config.numberOfWarehouses * 2 + 4) {
-
             if (orderCount % 3 == 0) {
                 currentOrder = new Order();
                 currentOrder.coordinates = line;
             }
 
             if (orderCount % 3 == 2) {
-                ordersArray.push(currentOrder);
-                currentOrder.products = sortByProductWeight(line);
+                currentOrder.products = sortByProductWeight(line, config);
+                currentOrder.id = orderId;
+                config.orders[orderId] = currentOrder;
+                orderId++;
             }
 
             orderCount++;
         }
     };
 
-    ordersArray.forEach(function(order, orderId) {
-        order.id = orderId;
-        config.orders[orderId] = order;
-    });
-
-    config.drones = createDrones(config.droneNumber);
+    createDrones(config.droneNumber, config);
 
     return config;
 };
 
-function sortByProductWeight(productTypes) {
+function sortByProductWeight(productTypes, config) {
     return productTypes.sort(function (a, b) {
         return config.productWeights[a] - config.productWeights[b];
     });
 }
 
-function createDrones(num) {
-    var drones = [];
-
+function createDrones(num, config) {
     for (var i = 0; i < num; i++) {
-        drones.push(new Drone(i, config));
+        config.drones.push(new Drone(i, config));
     }
-
-    return drones;
 }

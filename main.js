@@ -1,5 +1,5 @@
 var Simulation = require('./src/simulation');
 
-Simulation.run('mother_of_all_warehouses');
-Simulation.run('busy_day');
-Simulation.run('redundancy');
+new Simulation('mother_of_all_warehouses');
+new Simulation('busy_day');
+new Simulation('redundancy');

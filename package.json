@@ -1,3 +1,8 @@
 {
-
+    "name": "google-hash-code-2016-julien-thoma",
+    "description": "Google Hash Code Event 2016",
+    "dependencies": {
+        "node-fs": "0.1.7",
+        "underscore": "1.8.3"
+    }
 }

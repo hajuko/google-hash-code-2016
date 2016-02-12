@@ -1,11 +1,9 @@
-module.exports.run = function(fileName) {
+module.exports = function(fileName) {
     var parser = require('./parser');
     var Helper = require('./helper');
     var _ = require('underscore');
     var fs = require('node-fs');
-
     var config = parser.import('./data/' + fileName + '.in');
-
     var drone = config.drones.shift();
     var order = Helper.findSmallestOrder(config);
 
@@ -18,6 +16,5 @@ module.exports.run = function(fileName) {
     };
 
     drone.deliverOrder(order.id, order.coordinates);
-
     Helper.writeCommands(config.commands, fileName);
 };
