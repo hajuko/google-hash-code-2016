@@ -46,6 +46,34 @@ module.exports.findSmallestNotFinishedOrder = function(config) {
     return smallestOrder;
 };
 
+module.exports.findNearestOrderDoableInOneLoadMOTHER = function(config) {
+    var smallestDistance = Number.MAX_VALUE;
+    var bestOrder = null;
+
+    _.each(config.orders, function(order) {
+        if (order.isComplete) {
+            return;
+        }
+
+        var productObj = Helper.productArrayToObject(order.products);
+
+        if (Helper.getProductsWeight(config, productObj) > config.payload) {
+            return;
+        }
+
+        var motherCoordinates = [34, 264];
+
+        var orderDistance = distance(motherCoordinates, order.coordinates);
+
+        if (orderDistance < smallestDistance){
+            bestOrder = order;
+            smallestDistance = orderDistance;
+        }
+    });
+
+    return bestOrder;
+};
+
 module.exports.getNextDeliveryPlan = function(config, order) {
     var smallestDistance = Number.MAX_VALUE;
     var deliveryPlan = {
@@ -204,8 +232,8 @@ module.exports.distance = distance;
 
 function distance(coordinates1, coordinates2) {
     return Math.ceil(Math.sqrt(
-        Math.pow(Math.abs(coordinates1[0] - coordinates2[0]), 2) +
-        Math.pow(Math.abs(coordinates1[1] - coordinates2[1]), 2)
+        Math.pow(Math.abs(parseInt(coordinates1[0]) - parseInt(coordinates2[0])), 2) +
+        Math.pow(Math.abs(parseInt(coordinates1[1]) - parseInt(coordinates2[1])), 2)
     ));
 }
 
