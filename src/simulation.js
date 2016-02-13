@@ -10,13 +10,16 @@ module.exports = function(fileName) {
     while (order = Helper.findSmallestOrderNotFinishedOrder(config)) {
         var deliveryPlan = Helper.getNextDeliveryPlan(config, order);
 
+        console.log('getting new order: ' + order.id);
+        console.log(order);
+
         if (!deliveryPlan.warehouse) {
             console.log('warehouse not found');
             order.isComplete = true;
             continue;
         }
 
-        console.log(order.id);
+
 
 
         deliveryPlan.drone.deliverOrder(deliveryPlan);
