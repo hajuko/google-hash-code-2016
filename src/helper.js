@@ -117,7 +117,7 @@ module.exports.getNextDeliveryPlan = function(config, order) {
 
     var loadFactor = weight / config.payload;
 
-    if (loadFactor < 0.5 ) {
+    //if (loadFactor < 0.5 ) {
         console.log('old loadfactor: ' + loadFactor);
         console.log('getting additional order');
         Helper.addNearestCompletableOrder(config, deliveryPlan);
@@ -127,7 +127,7 @@ module.exports.getNextDeliveryPlan = function(config, order) {
         }
 
         console.log('new loadfactor: ' + deliveryPlan.weight / config.payload);
-    }
+    //}
 
     return deliveryPlan;
 };

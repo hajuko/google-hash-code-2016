@@ -4,6 +4,8 @@ module.exports = function(fileName) {
     var config = parser.import('./data/' + fileName + '.in');
     var order;
 
+    var noWarehouss = 0;
+
     while (order = Helper.findSmallestNotFinishedOrder(config)) {
         var deliveryPlan = Helper.getNextDeliveryPlan(config, order);
 
@@ -15,12 +17,15 @@ module.exports = function(fileName) {
 
         if (!deliveryPlan.warehouse) {
             // TODO Improvement finden.
+            noWarehouss++;
             order.isComplete = true;
             continue;
         }
 
         deliveryPlan.drone.deliverOrders(deliveryPlan);
     }
+
+    console.log(noWarehouss);
 
     Helper.writeCommands(config.commands, fileName);
 };
