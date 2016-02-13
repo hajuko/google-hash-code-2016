@@ -99,3 +99,41 @@ describe("The orderweight caluculation", function() {
         expect(Helper.getProductsWeight(config, products)).toBe(610);
     });
 });
+
+describe("The drone score caluculation", function() {
+
+    it("should calculate the weight correctly", function() {
+
+        var config = {
+            turns: 1000
+        };
+
+        var drone = {
+            getTurns: function() {
+                return 900;
+            }
+        };
+
+        var drone2 = {
+            getTurns: function() {
+                return 500;
+            }
+        };
+
+        var drone3 = {
+            getTurns: function() {
+                return 50;
+            }
+        };
+
+        expect(Helper.calculateDistanceWithScore(config, drone, 100))
+            .toBeLessThan(Helper.calculateDistanceWithScore(config, drone2, 100));
+
+        expect(Helper.calculateDistanceWithScore(config, drone, 100))
+            .toBeLessThan(Helper.calculateDistanceWithScore(config, drone2, 60));
+
+        expect(Helper.calculateDistanceWithScore(config, drone2, 100))
+            .toBeLessThan(Helper.calculateDistanceWithScore(config, drone3, 60));
+    });
+});
+

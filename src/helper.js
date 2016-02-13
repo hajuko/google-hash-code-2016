@@ -48,6 +48,7 @@ module.exports.findSmallestNotFinishedOrder = function(config) {
 
 module.exports.getNextDeliveryPlan = function(config, order) {
     var smallestDistance = Number.MAX_VALUE;
+    var bestScore = Number.MAX_VALUE;
     var deliveryPlan = {
         warehouse: null,
         products: [],
@@ -93,8 +94,11 @@ module.exports.getNextDeliveryPlan = function(config, order) {
                 return
             }
 
-            if (totalDistance < smallestDistance) {
+            var score = Helper.calculateDistanceWithScore(config, drone, totalDistance);
 
+            if (score < bestScore) {
+
+                bestScore = score;
                 smallestDistance = totalDistance;
                 deliveryPlan.drone = drone;
                 deliveryPlan.warehouse = warehouse;
@@ -233,5 +237,11 @@ module.exports.getNotFinishedOrders = function(config) {
     });
 
     return notCompletedOrders;
+};
+
+module.exports.calculateDistanceWithScore = function(config, drone, distance) {
+    var turnScore = Math.pow((1- ((drone.getTurns() / config.turns))) + 1, 2);
+
+    return distance * turnScore;
 };
 
