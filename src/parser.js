@@ -35,7 +35,7 @@ module.exports.import = function(file) {
 
         if (i == 2) {
             line.forEach(function(weight, productType) {
-                config.productWeights[productType] = weight;
+                config.productWeights[productType] = parseInt(weight);
             });
         }
 

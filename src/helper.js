@@ -33,19 +33,14 @@ module.exports.findNearestWareHouse = function(config, coordinates) {
     return nearestWareHouse;
 };
 
-module.exports.findRandomNotFinishedOrder = function(config) {
-    var randomIndex = Math.floor((Math.random() * Object.keys(config.orders).length));
-
-    return config.orders[randomIndex];
-};
-
-module.exports.findSmallestOrderNotFinishedOrder = function(config) {
+module.exports.findSmallestNotFinishedOrder = function(config) {
     var smallestSize = Number.MAX_VALUE;
     var smallestOrder = null;
 
     _.each(config.orders, function(order) {
         if (!order.isComplete && order.products.length < smallestSize) {
             smallestOrder = order;
+            smallestSize = order.products.length;
         }
     });
 
@@ -76,6 +71,7 @@ module.exports.getNextDeliveryPlan = function(config, order) {
     deliveryPlan.products = Helper.productArrayToObject(deliveryPlan.products);
 
     if (order.products.length == 0) {
+        console.log('set is complete');
         order.isComplete = true;
     }
 
@@ -85,18 +81,9 @@ module.exports.getNextDeliveryPlan = function(config, order) {
                 return;
             }
 
-            if (drone.id == 1) {
-                console.log(drone.id, drone.getCoordinates());
-            } else {
-                console.log('other drone');
-            }
-
-
-
             var warehouseDroneDistance = distance(warehouse.coordinates, drone.getCoordinates());
             var warehouseOrderDistance = distance(warehouse.coordinates, order.coordinates);
             var totalDinstance = warehouseDroneDistance + warehouseOrderDistance;
-
             var neededTurns = totalDinstance + 2 * Object.keys(deliveryPlan.products).length;
 
             if (neededTurns > drone.getTurns()) {
@@ -139,4 +126,19 @@ function distance(coordinates1, coordinates2) {
         Math.pow(Math.abs(coordinates1[1] - coordinates2[1]), 2)
     ));
 }
+
+module.exports.getProductWeight = function(config, productId) {
+    return config.productWeights[productId];
+};
+
+module.exports.getNotFinishedOrders = function(config) {
+    var notCompletedOrders = [];
+    _.each(config.orders, function(order) {
+        if (!order.isComplete) {
+            notCompletedOrders.push(order);
+        }
+    });
+
+    return notCompletedOrders;
+};
 

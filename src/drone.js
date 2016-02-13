@@ -22,7 +22,7 @@ module.exports = function(id, config) {
             deliverItem(deliveryPlan, productType, number);
         });
 
-        console.log('delivering oder ' + deliveryPlan.order.id + ' to ' + deliveryPlan.order.coordinates);
+        console.log('delivering order ' + deliveryPlan.order.id + ' to ' + deliveryPlan.order.coordinates);
 
         coordinates = deliveryPlan.order.coordinates;
     }
