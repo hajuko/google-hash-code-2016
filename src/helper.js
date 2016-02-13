@@ -96,7 +96,7 @@ module.exports.getNextDeliveryPlan = function(config, order) {
 
             var score = Helper.calculateDistanceWithScore(config, drone, totalDistance);
 
-            if (score < bestScore) {
+            if (score <= bestScore) {
 
                 bestScore = score;
                 smallestDistance = totalDistance;
@@ -121,17 +121,11 @@ module.exports.getNextDeliveryPlan = function(config, order) {
 
     var loadFactor = weight / config.payload;
 
-    //if (loadFactor < 0.5 ) {
-        console.log('old loadfactor: ' + loadFactor);
-        console.log('getting additional order');
         Helper.addNearestCompletableOrder(config, deliveryPlan);
 
         if (deliveryPlan.additionalOrders.length == 0) {
             console.log('nothing found!!!!!');
         }
-
-        console.log('new loadfactor: ' + deliveryPlan.weight / config.payload);
-    //}
 
     return deliveryPlan;
 };
@@ -240,7 +234,7 @@ module.exports.getNotFinishedOrders = function(config) {
 };
 
 module.exports.calculateDistanceWithScore = function(config, drone, distance) {
-    var turnScore = Math.pow((1- ((drone.getTurns() / config.turns))) + 1, 2);
+    var turnScore = Math.pow((1- ((drone.getTurns() / config.turns))) + 1, 10);
 
     return distance * turnScore;
 };
