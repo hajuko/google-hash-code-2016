@@ -75,7 +75,7 @@ module.exports.findNearestOrderDoableInOneLoadMOTHER = function(config) {
 };
 
 module.exports.getNextDeliveryPlan = function(config, order) {
-    var smallestDistance = Number.MAX_VALUE;
+    var highestNumberOfTurns = 0;
     var deliveryPlan = {
         warehouse: null,
         products: [],
@@ -107,29 +107,26 @@ module.exports.getNextDeliveryPlan = function(config, order) {
     }
 
     config.drones.forEach(function(drone) {
-        config.warehouses.forEach(function(warehouse) {
-            if (!warehouse.hasProductsInStock(deliveryPlan.products)) {
-                return;
-            }
+        var warehouse = config.warehouses[0];
 
-            var warehouseDroneDistance = distance(warehouse.coordinates, drone.getCoordinates());
-            var warehouseOrderDistance = distance(warehouse.coordinates, order.coordinates);
-            var totalDistance = warehouseDroneDistance + warehouseOrderDistance;
-            var neededTurns = totalDistance + 2 * Object.keys(deliveryPlan.products).length;
+        // Mother hat genug von allen waren. Kann nicht leer gehen!!
+        var warehouseDroneDistance = distance(warehouse.coordinates, drone.getCoordinates());
+        var warehouseOrderDistance = distance(warehouse.coordinates, order.coordinates);
+        var totalDistance = warehouseDroneDistance + warehouseOrderDistance;
+        var neededTurns = totalDistance + 2 * Object.keys(deliveryPlan.products).length;
 
-            if (neededTurns > drone.getTurns()) {
-                return
-            }
+        if (neededTurns > drone.getTurns()) {
+            return
+        }
 
-            if (totalDistance < smallestDistance) {
+        if (drone.getTurns() > highestNumberOfTurns) {
 
-                smallestDistance = totalDistance;
-                deliveryPlan.drone = drone;
-                deliveryPlan.warehouse = warehouse;
-                deliveryPlan.needTurns = neededTurns;
-                deliveryPlan.turnsLeft = drone.getTurns() - neededTurns;
-            }
-        });
+            highestNumberOfTurns = drone.getTurns();
+            deliveryPlan.drone = drone;
+            deliveryPlan.warehouse = warehouse;
+            deliveryPlan.needTurns = neededTurns;
+            deliveryPlan.turnsLeft = drone.getTurns() - neededTurns;
+        }
     });
 
     // TODO: Solange nicht behandelt skippen.
@@ -141,7 +138,6 @@ module.exports.getNextDeliveryPlan = function(config, order) {
 
     deliveryPlan.warehouse.removeProducts(deliveryPlan.products);
     deliveryPlan.weight = weight;
-    deliveryPlan.distance = smallestDistance;
 
     var loadFactor = weight / config.payload;
 
