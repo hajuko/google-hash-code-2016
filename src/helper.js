@@ -52,13 +52,17 @@ module.exports.getNextDeliveryPlan = function(config, order) {
     var deliveryPlan = {
         warehouse: null,
         products: [],
-        order: order
+        order: order,
+        weight: null,
+        additionalOrders: []
     };
 
     var weight = 0;
 
+    // TODO: Hier könnte man alle knapsackproblem die beste combo finden die rein passt. statt nach gewicht zu sortieren.
     while (order.products.length > 0) {
-        var currentProductWeight = config.productWeights[order.products[0]];
+        var nextProductId = order.products[0];
+        var currentProductWeight = Helper.getProductWeight(config, nextProductId);
 
         if (weight + currentProductWeight <= config.payload) {
             weight += currentProductWeight;
@@ -83,25 +87,94 @@ module.exports.getNextDeliveryPlan = function(config, order) {
 
             var warehouseDroneDistance = distance(warehouse.coordinates, drone.getCoordinates());
             var warehouseOrderDistance = distance(warehouse.coordinates, order.coordinates);
-            var totalDinstance = warehouseDroneDistance + warehouseOrderDistance;
-            var neededTurns = totalDinstance + 2 * Object.keys(deliveryPlan.products).length;
+            var totalDistance = warehouseDroneDistance + warehouseOrderDistance;
+            var neededTurns = totalDistance + 2 * Object.keys(deliveryPlan.products).length;
 
             if (neededTurns > drone.getTurns()) {
                 return
             }
 
-            if (totalDinstance < smallestDistance) {
+            if (totalDistance < smallestDistance) {
 
-                smallestDistance = totalDinstance;
+                smallestDistance = totalDistance;
                 deliveryPlan.drone = drone;
                 deliveryPlan.warehouse = warehouse;
+                deliveryPlan.needTurns = neededTurns;
+                deliveryPlan.turnsLeft = drone.getTurns() - neededTurns;
             }
         });
     });
 
-    deliveryPlan.dinstance = smallestDistance;
+    // TODO: Solange nicht behandelt skippen.
+    if (!deliveryPlan.warehouse) {
+        console.log('no warehouse');
+
+        return deliveryPlan;
+    }
+
+    deliveryPlan.warehouse.removeProducts(deliveryPlan.products);
+
+    deliveryPlan.weight = weight;
+    deliveryPlan.distance = smallestDistance;
+
+    var loadFactor = weight / config.payload;
+
+    //if (loadFactor < 0.5 ) {
+    //    Helper.addNearestCompletableOrder(config, deliveryPlan);
+    //    console.log(deliveryPlan.additionalOrders);
+    //}
 
     return deliveryPlan;
+};
+
+module.exports.addNearestCompletableOrder = function(config, deliveryPlan) {
+
+
+
+    var smallestDistance = Number.MAX_VALUE;
+    var bestOrder = null;
+
+    var remainingWeight = config.payload - deliveryPlan.weight;
+
+    _.each(config.orders, function(order) {
+        if (order.isComplete) {
+            return;
+        }
+
+        var productObj = Helper.productArrayToObject(order.products);
+
+        if (!deliveryPlan.warehouse.hasProductsInStock(productObj)) {
+            return;
+        }
+
+        var orderWeight = Helper.getProductsWeight(config, productObj);
+
+        if (orderWeight > remainingWeight) {
+            return;
+        }
+
+        var orderToOrderDistance = distance(deliveryPlan.order.coordinates, order.coordinates);
+        var neededTurns = orderToOrderDistance + 2 * Object.keys(productObj).length;
+
+
+        if (neededTurns > deliveryPlan.turnsLeft) {
+            return;
+        }
+
+        deliveryPlan.turnsLeft -= neededTurns;
+        deliveryPlan.needTurns += neededTurns;
+
+        if (orderToOrderDistance < smallestDistance) {
+            smallestDistance = orderToOrderDistance;
+            bestOrder = order;
+        }
+    });
+
+    if (bestOrder) {
+        deliveryPlan.additionalOrders.push(bestOrder);
+    } else {
+        return false;
+    }
 };
 
 module.exports.productArrayToObject = function(productArray) {
@@ -129,6 +202,17 @@ function distance(coordinates1, coordinates2) {
 
 module.exports.getProductWeight = function(config, productId) {
     return config.productWeights[productId];
+};
+
+module.exports.getProductsWeight = function(config, products) {
+    var weight = 0;
+    _.each(products, function(number, productId) {
+        var productWeight = Helper.getProductWeight(config, productId);
+
+        weight += productWeight * parseInt(number);
+    });
+
+    return weight;
 };
 
 module.exports.getNotFinishedOrders = function(config) {

@@ -7,22 +7,29 @@ module.exports = function(id, config) {
 
     function loadItems(warehouse, productType, number) {
         config.commands.push(id + ' L ' + warehouse.id + ' ' + productType + ' ' + number);
-        warehouse.products[productType] -= number;
         turns--;
     }
 
-    function deliverOrder(deliveryPlan) {
+    function deliverOrders(deliveryPlan) {
         _.each(deliveryPlan.products, function(number, productType) {
             loadItems(deliveryPlan.warehouse, productType, number);
         });
 
-        turns -= deliveryPlan.dinstance;
+        //deliveryPlan.additionalOrders.forEach(function(additionalOrder) {
+        //    var productObj = Helper.productArrayToObject(additionalOrder.products);
+        //
+        //    _.each(productObj, function(number, productType) {
+        //        loadItems(deliveryPlan.warehouse, productType, number);
+        //    });
+        //});
 
         _.each(deliveryPlan.products, function(number, productType) {
             deliverItem(deliveryPlan, productType, number);
         });
 
         console.log('delivering order ' + deliveryPlan.order.id + ' to ' + deliveryPlan.order.coordinates);
+
+        turns -= deliveryPlan.distance;
 
         coordinates = deliveryPlan.order.coordinates;
     }
@@ -45,7 +52,7 @@ module.exports = function(id, config) {
         id: id,
         getCoordinates: getCoordinates,
         loadItems: loadItems,
-        deliverOrder: deliverOrder,
+        deliverOrders: deliverOrders,
         getTurns: getTurns
     }
 };

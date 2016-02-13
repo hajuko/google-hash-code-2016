@@ -77,3 +77,25 @@ describe("The findSmallestNotFinishedOrder function", function() {
         expect(Helper.findSmallestNotFinishedOrder(config)).toEqual(config.orders[2]);
     });
 });
+
+
+describe("The orderweight caluculation", function() {
+
+    it("should calculate the weight correctly", function() {
+        var config = {
+            productWeights: {
+                0: 50,
+                1: 10,
+                3: 100
+            }
+        };
+
+        var products = {
+            0: 2,
+            1: 1,
+            3: 5
+        };
+
+        expect(Helper.getProductsWeight(config, products)).toBe(610);
+    });
+});
