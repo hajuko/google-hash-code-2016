@@ -7,7 +7,6 @@ module.exports = function(id, config) {
 
     function loadItems(warehouse, productType, number) {
         config.commands.push(id + ' L ' + warehouse.id + ' ' + productType + ' ' + number);
-        turns--;
     }
 
     function deliverOrders(deliveryPlan) {
@@ -15,29 +14,43 @@ module.exports = function(id, config) {
             loadItems(deliveryPlan.warehouse, productType, number);
         });
 
-        //deliveryPlan.additionalOrders.forEach(function(additionalOrder) {
-        //    var productObj = Helper.productArrayToObject(additionalOrder.products);
-        //
-        //    _.each(productObj, function(number, productType) {
-        //        loadItems(deliveryPlan.warehouse, productType, number);
-        //    });
-        //});
+        deliveryPlan.additionalOrders.forEach(function(additionalOrder) {
+            var productObj = Helper.productArrayToObject(additionalOrder.products);
+
+            _.each(productObj, function(number, productType) {
+                loadItems(deliveryPlan.warehouse, productType, number);
+            });
+        });
 
         _.each(deliveryPlan.products, function(number, productType) {
-            deliverItem(deliveryPlan, productType, number);
+            deliverItem(deliveryPlan.order.id, productType, number);
+        });
+
+        coordinates = deliveryPlan.order.coordinates;
+
+        deliveryPlan.additionalOrders.forEach(function(additionalOrder) {
+            var productObj = Helper.productArrayToObject(additionalOrder.products);
+
+            //if (additionalOrder.id == 536) {
+            //    console.log(config.orders[536]);
+            //    console.log(additionalOrder);
+            //    console.log(productObj);
+            //    throw 'fu';
+            //}
+
+            _.each(productObj, function(number, productType) {
+                deliverItem(additionalOrder.id, productType, number);
+            });
+
+            coordinates = additionalOrder.coordinates;
         });
 
         console.log('delivering order ' + deliveryPlan.order.id + ' to ' + deliveryPlan.order.coordinates);
-
-        turns -= deliveryPlan.distance;
-
-        coordinates = deliveryPlan.order.coordinates;
+        turns = deliveryPlan.turnsLeft;
     }
 
-    function deliverItem(deliveryPlan, productType, numberOfItems) {
-        turns--;
-        deliveryPlan.products[productType] -= numberOfItems;
-        config.commands.push(id + ' D ' + deliveryPlan.order.id + ' ' + productType + ' ' + numberOfItems);
+    function deliverItem(orderId, productType, numberOfItems) {
+        config.commands.push(id + ' D ' + orderId + ' ' + productType + ' ' + numberOfItems);
     }
 
     function getTurns() {

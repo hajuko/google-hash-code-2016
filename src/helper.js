@@ -16,7 +16,6 @@ module.exports.writeCommands = function(commands, fileName) {
     fs.writeFileSync('./data/' + fileName + '.out', content, 'utf8');
 };
 
-
 module.exports.findNearestWareHouse = function(config, coordinates) {
     var nearestWareHouse = null;
     var closestDistance = Number.MAX_VALUE;
@@ -113,28 +112,33 @@ module.exports.getNextDeliveryPlan = function(config, order) {
     }
 
     deliveryPlan.warehouse.removeProducts(deliveryPlan.products);
-
     deliveryPlan.weight = weight;
     deliveryPlan.distance = smallestDistance;
 
     var loadFactor = weight / config.payload;
 
-    //if (loadFactor < 0.5 ) {
-    //    Helper.addNearestCompletableOrder(config, deliveryPlan);
-    //    console.log(deliveryPlan.additionalOrders);
-    //}
+    if (loadFactor < 0.5 ) {
+        console.log('old loadfactor: ' + loadFactor);
+        console.log('getting additional order');
+        Helper.addNearestCompletableOrder(config, deliveryPlan);
+
+        if (deliveryPlan.additionalOrders.length == 0) {
+            console.log('nothing found!!!!!');
+        }
+
+        console.log('new loadfactor: ' + deliveryPlan.weight / config.payload);
+    }
 
     return deliveryPlan;
 };
 
 module.exports.addNearestCompletableOrder = function(config, deliveryPlan) {
-
-
-
     var smallestDistance = Number.MAX_VALUE;
     var bestOrder = null;
-
+    var currentProducts = {};
     var remainingWeight = config.payload - deliveryPlan.weight;
+    var currentNeedTurns = null;
+    var currentOrderWeight = null;
 
     _.each(config.orders, function(order) {
         if (order.isComplete) {
@@ -161,17 +165,22 @@ module.exports.addNearestCompletableOrder = function(config, deliveryPlan) {
             return;
         }
 
-        deliveryPlan.turnsLeft -= neededTurns;
-        deliveryPlan.needTurns += neededTurns;
-
         if (orderToOrderDistance < smallestDistance) {
             smallestDistance = orderToOrderDistance;
+            currentNeedTurns = neededTurns;
             bestOrder = order;
+            currentProducts = productObj;
+            currentOrderWeight = orderWeight;
         }
     });
 
     if (bestOrder) {
+        deliveryPlan.turnsLeft -= currentNeedTurns;
+        deliveryPlan.needTurns += currentNeedTurns;
+        deliveryPlan.warehouse.removeProducts(currentProducts);
         deliveryPlan.additionalOrders.push(bestOrder);
+        bestOrder.isComplete = true;
+        deliveryPlan.weight += currentOrderWeight;
     } else {
         return false;
     }
