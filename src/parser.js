@@ -11,7 +11,8 @@ module.exports.import = function(file) {
         warehouses: [],
         orders: {},
         commands: [],
-        drones: []
+        drones: [],
+        stockDeliveries: []
     };
     var inputSet = fs.readFileSync(file, 'utf8');
     var currentWarehouse = null;
@@ -25,7 +26,7 @@ module.exports.import = function(file) {
     for (var i = 0; i < lines.length; i++ ) {
         var line = lines[i].split(' ');
 
-        if (i == 0) {
+        if (i === 0) {
             config.rows = line[0];
             config.columns = line[1];
             config.droneNumber = line[2];
@@ -33,18 +34,18 @@ module.exports.import = function(file) {
             config.payload = parseInt(line[4]);
         }
 
-        if (i == 2) {
+        if (i === 2) {
             line.forEach(function(weight, productType) {
                 config.productWeights[productType] = parseInt(weight);
             });
         }
 
-        if (i == 3) {
+        if (i === 3) {
             config.numberOfWarehouses = line[0];
         }
 
         if (i >= 4 && i < config.numberOfWarehouses * 2 + 4) {
-            if (i % 2 == 0) {
+            if (i % 2 === 0) {
                 currentWarehouse = new Warehouse();
                 currentWarehouse.coordinates = line;
                 currentWarehouse.id = warehouseId;
@@ -58,12 +59,12 @@ module.exports.import = function(file) {
         }
 
         if (i > config.numberOfWarehouses * 2 + 4) {
-            if (orderCount % 3 == 0) {
+            if (orderCount % 3 === 0) {
                 currentOrder = new Order();
                 currentOrder.coordinates = line;
             }
 
-            if (orderCount % 3 == 2) {
+            if (orderCount % 3 === 2) {
                 currentOrder.products = sortByProductWeight(line, config);
                 currentOrder.id = orderId;
                 config.orders[orderId] = currentOrder;

@@ -9,38 +9,36 @@ module.exports = function(id, config) {
         config.commands.push(id + ' L ' + warehouse.id + ' ' + productType + ' ' + number);
     }
 
+    function loadProducts(products, warehouse) {
+        var productObj = Helper.productArrayToObject(products);
+
+        _.each(productObj, function(number, productType) {
+            loadItems(warehouse, productType, number);
+        });
+    }
+
+    function deliverProducts(products, orderId) {
+        _.each(products, function(number, productType) {
+            deliverItem(orderId, productType, number);
+        });
+    }
+
     function deliverOrders(deliveryPlan) {
         _.each(deliveryPlan.products, function(number, productType) {
             loadItems(deliveryPlan.warehouse, productType, number);
         });
 
         deliveryPlan.additionalOrders.forEach(function(additionalOrder) {
-            var productObj = Helper.productArrayToObject(additionalOrder.products);
-
-            _.each(productObj, function(number, productType) {
-                loadItems(deliveryPlan.warehouse, productType, number);
-            });
+            loadProducts(additionalOrder.products, deliveryPlan.warehouse);
         });
 
-        _.each(deliveryPlan.products, function(number, productType) {
-            deliverItem(deliveryPlan.order.id, productType, number);
-        });
+        deliverProducts(deliveryPlan.products, deliveryPlan.order.id);
 
         coordinates = deliveryPlan.order.coordinates;
 
         deliveryPlan.additionalOrders.forEach(function(additionalOrder) {
             var productObj = Helper.productArrayToObject(additionalOrder.products);
-
-            //if (additionalOrder.id == 536) {
-            //    console.log(config.orders[536]);
-            //    console.log(additionalOrder);
-            //    console.log(productObj);
-            //    throw 'fu';
-            //}
-
-            _.each(productObj, function(number, productType) {
-                deliverItem(additionalOrder.id, productType, number);
-            });
+            deliverProducts(productObj, additionalOrder.id);
 
             coordinates = additionalOrder.coordinates;
         });
@@ -67,5 +65,5 @@ module.exports = function(id, config) {
         loadItems: loadItems,
         deliverOrders: deliverOrders,
         getTurns: getTurns
-    }
+    };
 };

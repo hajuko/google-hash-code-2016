@@ -16,11 +16,11 @@ module.exports.writeCommands = function(commands, fileName) {
     fs.writeFileSync('./data/' + fileName + '.out', content, 'utf8');
 };
 
-module.exports.findNearestWareHouse = function(config, coordinates) {
+module.exports.findNearestWareHouse = function(coordinates, warehouses) {
     var nearestWareHouse = null;
     var closestDistance = Number.MAX_VALUE;
 
-    config.warehouses.forEach(function(warehouse) {
+    warehouses.forEach(function(warehouse) {
         var currentDistance = distance(warehouse.coordinates, coordinates);
 
         if (currentDistance < closestDistance) {
@@ -47,12 +47,13 @@ module.exports.findSmallestNotFinishedOrder = function(config) {
 };
 
 module.exports.getNextDeliveryPlan = function(config, order) {
+    var clonedOrder = _.clone(order);
     var smallestDistance = Number.MAX_VALUE;
     var bestScore = Number.MAX_VALUE;
     var deliveryPlan = {
         warehouse: null,
         products: [],
-        order: order,
+        order: null,
         weight: null,
         additionalOrders: []
     };
@@ -60,13 +61,13 @@ module.exports.getNextDeliveryPlan = function(config, order) {
     var weight = 0;
 
     // TODO: Hier könnte man alle knapsackproblem die beste combo finden die rein passt. statt nach gewicht zu sortieren.
-    while (order.products.length > 0) {
-        var nextProductId = order.products[0];
+    while (clonedOrder.products.length > 0) {
+        var nextProductId = clonedOrder.products[0];
         var currentProductWeight = Helper.getProductWeight(config, nextProductId);
 
         if (weight + currentProductWeight <= config.payload) {
             weight += currentProductWeight;
-            deliveryPlan.products.push(order.products.shift());
+            deliveryPlan.products.push(clonedOrder.products.shift());
         } else {
             break;
         }
@@ -74,9 +75,9 @@ module.exports.getNextDeliveryPlan = function(config, order) {
 
     deliveryPlan.products = Helper.productArrayToObject(deliveryPlan.products);
 
-    if (order.products.length == 0) {
+    if (clonedOrder.products.length == 0) {
         console.log('set is complete');
-        order.isComplete = true;
+        clonedOrder.isComplete = true;
     }
 
     config.drones.forEach(function(drone) {
@@ -86,12 +87,12 @@ module.exports.getNextDeliveryPlan = function(config, order) {
             }
 
             var warehouseDroneDistance = distance(warehouse.coordinates, drone.getCoordinates());
-            var warehouseOrderDistance = distance(warehouse.coordinates, order.coordinates);
+            var warehouseOrderDistance = distance(warehouse.coordinates, clonedOrder.coordinates);
             var totalDistance = warehouseDroneDistance + warehouseOrderDistance;
             var neededTurns = totalDistance + 2 * Object.keys(deliveryPlan.products).length;
 
             if (neededTurns > drone.getTurns()) {
-                return
+                return;
             }
 
             var score = Helper.calculateDistanceWithScore(config, drone, totalDistance);
@@ -102,7 +103,6 @@ module.exports.getNextDeliveryPlan = function(config, order) {
                 smallestDistance = totalDistance;
                 deliveryPlan.drone = drone;
                 deliveryPlan.warehouse = warehouse;
-                deliveryPlan.needTurns = neededTurns;
                 deliveryPlan.turnsLeft = drone.getTurns() - neededTurns;
             }
         });
@@ -114,6 +114,9 @@ module.exports.getNextDeliveryPlan = function(config, order) {
 
         return deliveryPlan;
     }
+
+    order = clonedOrder;
+    deliveryPlan.order = order;
 
     deliveryPlan.warehouse.removeProducts(deliveryPlan.products);
     deliveryPlan.weight = weight;
@@ -174,7 +177,6 @@ module.exports.addNearestCompletableOrder = function(config, deliveryPlan) {
 
     if (bestOrder) {
         deliveryPlan.turnsLeft -= currentNeedTurns;
-        deliveryPlan.needTurns += currentNeedTurns;
         deliveryPlan.warehouse.removeProducts(currentProducts);
         deliveryPlan.additionalOrders.push(bestOrder);
         bestOrder.isComplete = true;
@@ -184,8 +186,146 @@ module.exports.addNearestCompletableOrder = function(config, deliveryPlan) {
     }
 };
 
+module.exports.deliverSplitOrders = function(config) {
+    _.each(config.splitOrders, function(splitOrder) {
+        Helper.findWarehouseCombo(config, splitOrder);
+    });
+};
+
+module.exports.findWarehouseCombo = function(config, order) {
+    var clonedOrder = _.clone(order);
+
+    var splitCombos = {
+        warehousesProducts: [],
+        order: order,
+        completeProducts: []
+    };
+
+    while (true) {
+        var bestWarehouse = null;
+        var availableProducts = null;
+        var hightestNumberOfItemsInStock = 0;
+
+        config.warehouses.forEach(function(warehouse) {
+            var carriableItemsInStock = warehouse.getCarriableItemsInStock(config, clonedOrder.products);
+
+            if (carriableItemsInStock.length > hightestNumberOfItemsInStock) {
+                hightestNumberOfItemsInStock = carriableItemsInStock.length;
+                bestWarehouse = warehouse;
+                availableProducts = carriableItemsInStock;
+            }
+        });
+
+        if (bestWarehouse == null) {
+            console.warn('NO WAREHOUSE FOUND');
+            return;
+        }
+
+        availableProducts.forEach(function(product) {
+            splitCombos.completeProducts.push(product);
+        });
+
+        splitCombos.warehousesProducts.push({
+            warehouse: bestWarehouse,
+            products: availableProducts
+        });
+
+        splitCombos.completeProducts.sort(function(a, b) {
+            return a - b;
+        });
+
+        clonedOrder.products = Helper.remaining(clonedOrder.products, splitCombos.completeProducts);
+
+        if (clonedOrder.products.length == 0) {
+            order.isComplete = true;
+            console.log('yeah');
+            break;
+        }
+    }
+
+    Helper.executeSplit(config, splitCombos);
+};
+
+
+module.exports.executeSplit = function(config, splitCombos) {
+    var warehousesProducts = splitCombos.warehousesProducts;
+
+    warehousesProducts.forEach(function(warehouseProductPair) {
+        var deliveryPlan = {
+            products: Helper.productArrayToObject(warehouseProductPair.products),
+            warehouse: warehouseProductPair.warehouse,
+            order: splitCombos.order,
+            additionalOrders: []
+        };
+
+        deliveryPlan.warehouse.removeProducts(deliveryPlan.products);
+
+        var drone = Helper.findNearestDrone(config, deliveryPlan);
+
+        if (drone === null) {
+            console.warn('DRONE NOT FOUND');
+            return;
+        }
+
+        drone.deliverOrders(deliveryPlan);
+    });
+}
+
+module.exports.findNearestDrone = function(config, deliveryPlan) {
+    var bestDrone = null;
+    var smallestDistance = Number.MAX_VALUE;
+    var neededTurns = null;
+    var warehouseOrderDistance = distance(deliveryPlan.warehouse.coordinates, deliveryPlan.order.coordinates);
+    var loadAndDeliveryTurns = 2 * Object.keys(deliveryPlan.products).length;
+
+    config.drones.forEach(function(drone) {
+        var droneWarehouseDistance = distance(drone.getCoordinates(), deliveryPlan.warehouse.coordinates);
+        neededTurns = droneWarehouseDistance + warehouseOrderDistance + loadAndDeliveryTurns;
+
+        var productWeight = Helper.getProductsWeight(config, deliveryPlan.products);
+
+        if (productWeight > config.payload) {
+            console.log(productWeight);
+            console.log('TOOOO MUCH WEIGHT');
+            return;
+        }
+
+        if (drone.getTurns() < neededTurns) {
+            return;
+        }
+
+        if (droneWarehouseDistance < smallestDistance) {
+            smallestDistance = droneWarehouseDistance;
+            bestDrone = drone;
+        }
+    });
+
+    if (bestDrone == null) {
+        console.log('no drone found');
+        return null;
+    }
+
+    deliveryPlan.turnsLeft = bestDrone.getTurns() - neededTurns;
+
+    return bestDrone;
+};
+
+module.exports.findBestDrone = function(config) {
+    var bestDrone = null;
+    var turns = 0;
+
+    config.drones.forEach(function(drone) {
+        if (drone.getTurns() > turns) {
+            turns = drone.getTurns();
+            bestDrone = drone;
+        }
+    });
+
+    return bestDrone;
+}
+
 module.exports.productArrayToObject = function(productArray) {
-    obj = {};
+    var obj = {};
 
     productArray.forEach(function(product) {
         if (!obj[product]) {
@@ -237,5 +377,19 @@ module.exports.calculateDistanceWithScore = function(config, drone, distance) {
     var turnScore = Math.pow((1- ((drone.getTurns() / config.turns))) + 1, 10);
 
     return distance * turnScore;
+};
+
+module.exports.remaining = function(array1, array2) {
+    var result = _.clone(array1);
+
+    array2.forEach(function(value) {
+        var index = result.indexOf(value);
+
+        if (index > -1) {
+            result.splice(index, 1);
+        }
+    });
+
+    return result;
 };
 

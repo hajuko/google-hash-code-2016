@@ -20,6 +20,7 @@
         "require": true,
         "module": true,
         "exports": true,
-        "_": true
+        "_": true,
+        "describe": true
     }
 }
